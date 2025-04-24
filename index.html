@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS风格单词填空游戏</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: url('https://images.unsplash.com/photo-1519681393784-d120267933ba?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center;
+            background-size: cover;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .glass-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            padding: 30px;
+            width: 100%;
+            color: #333;
+        }
+
+        .glass-title {
+            text-align: center;
+            margin-bottom: 25px;
+            color: #1c1c1e;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        .progress-bar {
+            background: rgba(200, 200, 200, 0.5);
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .progress {
+            background: linear-gradient(90deg, #32D74B, #0A84FF);
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .hint {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .sentence {
+            font-size: 18px;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .letters-container {
+            margin-bottom: 30px;
+        }
+
+        .available-letters {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .letter {
+            background: rgba(255, 255, 255, 0.5);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            user-select: none;
+            font-size: 18px;
+        }
+
+        .letter:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .answer-slots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+
+        .slot {
+            width: 44px;
+            height: 44px;
+            border-bottom: 3px solid #0A84FF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.5);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1c1c1e;
+        }
+
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.7);
+            transform: translateY(-2px);
+        }
+
+        .glass-button.secondary {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .feedback {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .feedback.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .feedback-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .feedback-correct {
+            color: #32D74B;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .feedback-incorrect {
+            color: #FF453A;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .score-display {
+            margin-top: 15px;
+            font-size: 16px;
+            color: #636366;
+        }
+
+        .game-complete {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+
+        .complete-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .complete-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #0A84FF;
+        }
+
+        .final-score {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .restart-button {
+            background: #0A84FF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .restart-button:hover {
+            background: #007AFF;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-container">
+        <div class="glass-card">
+            <h2 class="glass-title">单词填空挑战</h2>
+            
+            <div class="progress-bar">
+                <div class="progress" style="width: 10%;"></div>
+            </div>
+            
+            <p class="hint">提示: 加载中...</p>
+            
+            <div class="sentence">加载题目中...</div>
+            
+            <div class="letters-container">
+                <div class="available-letters">
+                    <!-- 字母将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <div class="answer-slots">
+                <!-- 答案槽将通过JavaScript动态生成 -->
+            </div>
+            
+            <div class="action-buttons">
+                <button class="glass-button" id="check-btn">检查</button>
+                <button class="glass-button secondary" id="hint-btn">提示</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback">
+        <div class="feedback-card">
+            <div class="feedback-correct" id="correct-feedback">✓ 正确!</div>
+            <div class="feedback-incorrect" id="incorrect-feedback">✗ 不正确</div>
+            <p id="feedback-message"></p>
+            <div class="score-display">当前分数: <span id="score-display">0</span></div>
+        </div>
+    </div>
+
+    <div class="game-complete" id="game-complete" style="display: none;">
+        <div class="complete-card">
+            <h2 class="complete-title">游戏完成!</h2>
+            <p class="final-score">你的最终得分: <span id="final-score">0</span></p>
+            <button class="restart-button" id="restart-btn">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        const gameState = {
+            currentLevel: 0,
+            totalLevels: 5,
+            score: 0,
+            hintsUsed: 0,
+            currentWord: '',
+            selectedLetters: []
+        };
+
+        // 单词库
+        const wordBank = [
+            { word: "APPLE", hint: "一种水果，外皮通常是红色或绿色的" },
+            { word: "HOUSE", hint: "人们居住的建筑物" },
+            { word: "OCEAN", hint: "大片咸水体，覆盖地球大部分表面" },
+            { word: "MUSIC", hint: "由声音和寂静组成的艺术形式" },
+            { word: "TIGER", hint: "大型猫科动物，有橙色皮毛和黑色条纹" }
+        ];
+
+        // DOM元素
+        const elements = {
+            hint: document.querySelector('.hint'),
+            sentence: document.querySelector('.sentence'),
+            lettersContainer: document.querySelector('.available-letters'),
+            answerSlots: document.querySelector('.answer-slots'),
+            progressBar: document.querySelector('.progress'),
+            checkBtn: document.getElementById('check-btn'),
+            hintBtn: document.getElementById('hint-btn'),
+            feedback: document.getElementById('feedback'),
+            correctFeedback: document.getElementById('correct-feedback'),
+            incorrectFeedback: document.getElementById('incorrect-feedback'),
+            feedbackMessage: document.getElementById('feedback-message'),
+            scoreDisplay: document.getElementById('score-display'),
+            gameComplete: document.getElementById('game-complete'),
+            finalScore: document.getElementById('final-score'),
+            restartBtn: document.getElementById('restart-btn')
+        };
+
+        // 初始化游戏
+        function initGame() {
+            gameState.currentLevel = 0;
+            gameState.score = 0;
+            gameState.hintsUsed = 0;
+            nextLevel();
+            updateScoreDisplay();
+            
+            // 添加事件监听器
+            elements.checkBtn.addEventListener('click', checkAnswer);
+            elements.hintBtn.addEventListener('click', showHint);
+            elements.restartBtn.addEventListener('click', restartGame);
+        }
+
+        // 下一关
+        function nextLevel() {
+            if (gameState.currentLevel >= wordBank.length) {
+                endGame();
+                return;
+            }
+            
+            gameState.currentLevel++;
+            gameState.currentWord = wordBank[gameState.currentLevel - 1].word;
+            gameState.selectedLetters = [];
+            
+            loadLevel();
+            updateProgressBar();
+        }
+
+        // 加载关卡
+        function loadLevel() {
+            elements.hint.textContent = `提示: ${wordBank[gameState.currentLevel - 1].hint}`;
+            
+            // 设置句子
+            const blank = '_'.repeat(gameState.currentWord.length);
+            elements.sentence.textContent = `I ate a delicious ${blank} for breakfast.`;
+            
+            // 设置字母选项
+            elements.lettersContainer.innerHTML = '';
+            
+            // 创建字母选项（包括重复字母和干扰字母）
+            const letters = createLetterOptions(gameState.currentWord);
+            letters.forEach((letter, index) => {
+                const letterElement = document.createElement('span');
+                letterElement.className = 'letter';
+                letterElement.textContent = letter;
+                letterElement.dataset.index = index;
+                letterElement.addEventListener('click', () => selectLetter(letter, letterElement));
+                elements.lettersContainer.appendChild(letterElement);
+            });
+            
+            // 设置答案槽
+            elements.answerSlots.innerHTML = '';
+            for (let i = 0; i < gameState.currentWord.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.dataset.index = i;
+                slot.addEventListener('click', () => removeLetterFromSlot(i));
+                elements.answerSlots.appendChild(slot);
+            }
+        }
+
+        // 创建字母选项（包括干扰字母）
+        function createLetterOptions(word) {
+            const letters = word.split('');
+            
+            // 添加一些干扰字母
+            const allLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const extraLettersCount = Math.max(3, 7 - word.length); // 确保至少有7个字母
+            for (let i = 0; i < extraLettersCount; i++) {
+                const randomLetter = allLetters[Math.floor(Math.random() * allLetters.length)];
+                letters.push(randomLetter);
+            }
+            
+            // 打乱字母顺序
+            return shuffleArray(letters);
+        }
+
+        // 选择字母
+        function selectLetter(letter, element) {
+            // 找到第一个空槽
+            const slots = document.querySelectorAll('.slot');
+            let emptySlot = null;
+            
+            for (let i = 0; i < slots.length; i++) {
+                if (!slots[i].textContent) {
+                    emptySlot = slots[i];
+                    break;
+                }
+            }
+            
+            if (emptySlot) {
+                emptySlot.textContent = letter;
+                element.style.visibility = 'hidden';
+                gameState.selectedLetters.push({
+                    letter: letter,
+                    element: element,
+                    slot: emptySlot
+                });
+                
+                // 检查是否填满了所有槽
+                checkIfAllFilled();
+            }
+        }
+
+        // 从槽中移除字母
+        function removeLetterFromSlot(slotIndex) {
+            const slot = document.querySelector(`.slot[data-index="${slotIndex}"]`);
+            if (!slot.textContent) return;
+            
+            // 找到对应的字母元素
+            const selectedLetter = gameState.selectedLetters.find(item => item.slot === slot);
+            if (selectedLetter) {
+                selectedLetter.element.style.visibility = 'visible';
+                slot.textContent = '';
+                
+                // 从已选字母中移除
+                gameState.selectedLetters = gameState.selectedLetters.filter(item => item.slot !== slot);
+            }
+        }
+
+        // 检查是否填满了所有槽
+        function checkIfAllFilled() {
+            const slots = document.querySelectorAll('.slot');
+            const allFilled = Array.from(slots).every(slot => slot.textContent);
+            
+            if (allFilled) {
+                elements.checkBtn.style.backgroundColor = 'rgba(10, 132, 255, 0.7)';
+                elements.checkBtn.style.color = 'white';
+            }
+        }
+
+        // 检查答案
+        function checkAnswer() {
+            const slots = document.querySelectorAll('.slot');
+            const userAnswer = Array.from(slots).map(slot => slot.textContent).join('');
+            
+            if (userAnswer.length !== gameState.currentWord.length) {
+                showFeedback(false, "请填满所有空格");
+                return;
+            }
+            
+            if (userAnswer === gameState.currentWord) {
+                // 答案正确
+                showFeedback(true, "太棒了! 答案正确");
+                gameState.score += 100 - (gameState.hintsUsed * 20);
+                gameState.hintsUsed = 0;
+                updateScoreDisplay();
+                
+                // 延迟后加载下一关
+                setTimeout(() => {
+                    if (gameState.currentLevel < gameState.totalLevels) {
+                        nextLevel();
+                    } else {
+                        endGame();
+                    }
+                }, 1500);
+            } else {
+                // 答案错误
+                showFeedback(false, "不正确，请再试一次");
+            }
+        }
+
+        // 显示提示
+        function showHint() {
+            if (gameState.hintsUsed >= 3) {
+                showFeedback(false, "您已经使用了最大提示次数");
+                return;
+            }
+            
+            // 找到一个未填的正确字母位置
+            const slots = document.querySelectorAll('.slot');
+            const correctLetters = gameState.currentWord.split('');
+            let hintGiven = false;
+            
+            for (let i = 0; i < slots.length; i++) {
+                if (!slots[i].textContent) {
+                    const correctLetter = correctLetters[i];
+                    // 找到对应的字母元素
+                    const letterElements = document.querySelectorAll('.letter');
+                    for (let j = 0; j < letterElements.length; j++) {
+                        if (letterElements[j].textContent === correctLetter && 
+                            letterElements[j].style.visibility !== 'hidden') {
+                            // 高亮显示正确的字母
+                            letterElements[j].style.backgroundColor = 'rgba(50, 215, 75, 0.5)';
+                            letterElements[j].style.transform = 'scale(1.2)';
+                            setTimeout(() => {
+                                letterElements[j].style.backgroundColor = 'rgba(255, 255, 255, 0.5)';
+                                letterElements[j].style.transform = 'scale(1)';
+                            }, 1000);
+                            
+                            hintGiven = true;
+                            break;
+                        }
+                    }
+                    if (hintGiven) break;
+                }
+            }
+            
+            if (hintGiven) {
+                gameState.hintsUsed++;
+                gameState.score = Math.max(0, gameState.score - 20);
+                updateScoreDisplay();
+            } else {
+                showFeedback(false, "所有正确字母已填写");
+            }
+        }
+
+        // 显示反馈
+        function showFeedback(isCorrect, message) {
+            elements.correctFeedback.style.display = isCorrect ? 'block' : 'none';
+            elements.incorrectFeedback.style.display = isCorrect ? 'none' : 'block';
+            elements.feedbackMessage.textContent = message;
+            elements.feedback.classList.add('show');
+            
+            setTimeout(() => {
+                elements.feedback.classList.remove('show');
+            }, 1500);
+        }
+
+        // 更新进度条
+        function updateProgressBar() {
+            const progress = (gameState.currentLevel / gameState.totalLevels) * 100;
+            elements.progressBar.style.width = `${progress}%`;
+        }
+
+        // 更新分数显示
+        function updateScoreDisplay() {
+            elements.scoreDisplay.textContent = gameState.score;
+        }
+
+        // 结束游戏
+        function endGame() {
+            elements.finalScore.textContent = gameState.score;
+            elements.gameComplete.style.display = 'flex';
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            elements.gameComplete.style.display = 'none';
+            initGame();
+        }
+
+        // 辅助函数：打乱数组
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // 初始化游戏
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
